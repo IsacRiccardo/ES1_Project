@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "mbed.h": "c",
-        "mkl25z4.h": "c",
-        "led.h": "c"
-    }
-}
