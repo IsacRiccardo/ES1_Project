@@ -1,4 +1,4 @@
- #include "MKL25Z4.h"
+ #include <MKL25Z4.h>
  #include "LED.h"
 
 
@@ -41,6 +41,11 @@ void toggle_g(void){
 
 void toggle_b(void){
 	PTD->PTOR = (1 << BLUE_LED);
+}
+
+void toggle_gb(void){
+	PTD->PTOR = (1 << BLUE_LED);
+	PTB->PTOR = (1 << GREEN_LED);
 }
 
 void set_r(char on_off) {
