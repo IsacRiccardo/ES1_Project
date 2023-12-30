@@ -11,6 +11,8 @@
 #include "mma8451.h"
 #include "Recorder.h"
 
+#define CALIBRATE
+//#define DEBUG
 
 static char buff[150];
 
@@ -27,10 +29,17 @@ void periodic_task(void);
 void __calibrate(void);
 void calibrate_task(void);
 
-int main(void) {
-	int calibrate = 1;
-
-	int periodic = 0;
+int main(void) 
+{
+	#ifdef CALIBRATE
+		int calibrate = 1;
+		int periodic = 0;
+	#endif
+	
+	#ifndef CALIBRATE
+		int periodic = 1;
+	#endif
+	
 	int periodic_task_cnt = 0;
 	int roll_counter = 0;
 	int pitch_counter = 0;
@@ -54,16 +63,17 @@ int main(void) {
 	
 	while(1) {
 		// calibrate if enabled
-		if(calibrate)
-		{
-			calibrate_task();
-			if(calibration_counter >= 256) {
-				calibrate = 0;
-				periodic = 1;
-				// toggle green led to let know cal is done
-				
-			}	
-		}
+		#ifdef CALIBRATE
+			if(calibrate)
+			{
+				calibrate_task();
+				if(calibration_counter >= 256) 
+				{
+					calibrate = 0;
+					periodic = 1;
+				}	
+			}
+		#endif
 		
 		if(timerEvent) {
 			
@@ -78,11 +88,13 @@ int main(void) {
 			
 			// Set by periodic task
 			// If roll detected
-			if(roll){
+			if(roll)
+			{
 				roll_counter++;
-				switch(roll){ //switch to determine led freq
+				switch(roll)
+				{ //switch to determine led freq
 					case 1:
-						if(roll_counter >= 10) //100 ms
+						if(roll_counter >= 100) //1000 ms
 							{
 								if(direction==1)
 									toggle_g();
@@ -93,7 +105,7 @@ int main(void) {
 							}
 						break;
 					case 2:
-						if(roll_counter >= 8) //80 ms
+						if(roll_counter >= 50) //500 ms
 							{
 								if(direction==1)
 									toggle_g();
@@ -104,7 +116,7 @@ int main(void) {
 							}
 						break;
 					case 3:
-						if(roll_counter >= 6) //60 ms
+						if(roll_counter >= 20) //200 ms
 							{
 								if(direction==1)
 									toggle_g();
@@ -121,13 +133,9 @@ int main(void) {
 				direction = 0;
 				set_g(0);
 				set_b(0);
+				set_r(0);
 			}
-		
 		}
-		
-		if(Com_HasByte()) {
-			char c = (char)Com_GetByte();
-			}
 		
 		__WFI();
 	}
@@ -135,22 +143,28 @@ int main(void) {
 	return 0;
 }
 
-void periodic_task(void) {
-	float val;
+void periodic_task(void) 
+{
+	#ifdef DEBUG
+		float val;
+	#endif
+	
 	read_full_xyz();
 	
 	__calibrate();
 		
-	sprintf(buff, "x=%d y=%d z=%d\n\r", acc_X, acc_Y, acc_Z);
-	sprintf(buff, "roll=%d\n", roll); 
-	sprintf(buff, "direction=%d\n", direction);
-	stdout_putstr(buff, 50);
-	val = acc_X * amplification;
-	print_float("X [G]", val, 0);
-	val = acc_Y * amplification;
-	print_float("Y [G]", val, 0);
-	val = acc_Z * amplification;
-	print_float("Z [G]", val, 1);
+	#ifdef DEBUG
+		sprintf(buff, "x=%d y=%d z=%d\n\r", acc_X, acc_Y, acc_Z);
+		sprintf(buff, "roll=%d\n", roll); 
+		sprintf(buff, "direction=%d\n", direction);
+		stdout_putstr(buff, 50);
+		val = acc_X * amplification;
+		print_float("X [G]", val, 0);
+		val = acc_Y * amplification;
+		print_float("Y [G]", val, 0);
+		val = acc_Z * amplification;
+		print_float("Z [G]", val, 1);
+	#endif
 	
 	// roll detection
 	if(acc_X)
@@ -189,8 +203,10 @@ void periodic_task(void) {
 		roll = 0;
 }
 
-void __calibrate(void) {
-	if(offsetX < 30000) {
+void __calibrate(void) 
+{
+	if(offsetX < 30000) 
+	{
 		acc_X -= offsetX;
 		acc_Y -= offsetY;
 		//acc_Z -= offsetZ;
@@ -207,11 +223,12 @@ void __calibrate(void) {
 	}
 }
 
-void calibrate_task(void) {
-	
+void calibrate_task(void)
+{
 	read_full_xyz();
 	
-	if(calibration_counter < 0) {
+	if(calibration_counter < 0) 
+	{
 		offsetX = 0;
     	offsetY = 0; 
 		offsetZ = 0;
@@ -222,16 +239,22 @@ void calibrate_task(void) {
 		maxY = -30000;
 		maxZ = -30000;
 		amplification = 1.0;
-	} else if (calibration_counter < 128) {
+	} 
+	else if (calibration_counter < 128) 
+	{
 		offsetX += acc_X;
 		offsetY += acc_Y;
 		offsetZ += acc_Z;
-	} else if (calibration_counter == 128) {
+	} 
+	else if (calibration_counter == 128) 
+	{
 		offsetX >>= 7;
 		offsetY >>= 7;
 		offsetZ >>= 7;
 		amplification = 1.0f/(float)offsetZ;
-	} else {
+	} 
+	else 
+	{
 		acc_X -= offsetX;
 		if(acc_X > maxX)
 			maxX = acc_X;
@@ -254,7 +277,8 @@ void calibrate_task(void) {
 	calibration_counter++;
 }
 
-void print_float(char* str, float tmpVal, int new_line) {
+void print_float(char* str, float tmpVal, int new_line) 
+{
     char *tmpSign = (tmpVal < 0) ? "-" : "";
     tmpVal = (tmpVal < 0) ? tmpVal * -1.0f : tmpVal;
     int tmpInt1 = (int)tmpVal;                  // Get the integer (678).

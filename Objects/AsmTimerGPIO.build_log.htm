@@ -21,7 +21,7 @@ Target DLL:      PEMicro\Pemicro_ArmCortexInterface.dll V1.3.0.0
 Dialog DLL:      TARMCM1.DLL V1.14.6.0
  
 <h2>Project:</h2>
-C:\Repos\CalibrareFiltre\MMA_Project.uvprojx
+C:\Repos\ES1_Project\MMA_Project.uvprojx
 Project File Date:  12/03/2023
 
 <h2>Output:</h2>
@@ -45,32 +45,29 @@ void read_full_xyz()
                    void
 2 warnings generated.
 compiling mma8451.c...
-src/main.c(22): warning: no previous extern declaration for non-static variable 'direction' [-Wmissing-variable-declarations]
+src/main.c(24): warning: no previous extern declaration for non-static variable 'direction' [-Wmissing-variable-declarations]
 int direction = 0;      // variable used to determine the direction of pitch and roll (1 -> pos, -1 -> neg)
     ^
-src/main.c(22): note: declare 'static' if the variable is not intended to be used outside of this translation unit
+src/main.c(24): note: declare 'static' if the variable is not intended to be used outside of this translation unit
 int direction = 0;      // variable used to determine the direction of pitch and roll (1 -> pos, -1 -> neg)
 ^
-src/main.c(129): warning: unused variable 'c' [-Wunused-variable]
-                        char c = (char)Com_GetByte();
-                             ^
-src/main.c(36): warning: unused variable 'pitch_counter' [-Wunused-variable]
+src/main.c(45): warning: unused variable 'pitch_counter' [-Wunused-variable]
         int pitch_counter = 0;
             ^
-src/main.c(135): warning: 'return' will never be executed [-Wunreachable-code-return]
+src/main.c(143): warning: 'return' will never be executed [-Wunreachable-code-return]
         return 0;
                ^
-src/main.c(260): warning: mixing declarations and code is incompatible with standards before C99 [-Wdeclaration-after-statement]
+src/main.c(284): warning: mixing declarations and code is incompatible with standards before C99 [-Wdeclaration-after-statement]
     int tmpInt1 = (int)tmpVal;                  // Get the integer (678).
         ^
-5 warnings generated.
+4 warnings generated.
 compiling main.c...
+compiling UARTCom.c...
 assembling startup_MKL25Z4.s...
 compiling system_MKL25Z4.c...
-compiling UARTCom.c...
 linking...
-Program Size: Code=6300 RO-data=324 RW-data=0 ZI-data=608  
-".\Objects\AsmTimerGPIO.axf" - 0 Error(s), 8 Warning(s).
+Program Size: Code=3608 RO-data=208 RW-data=0 ZI-data=448  
+".\Objects\AsmTimerGPIO.axf" - 0 Error(s), 7 Warning(s).
 
 <h2>Software Packages used:</h2>
 
@@ -107,8 +104,8 @@ Package Vendor: Keil
    * Component: ARM::CMSIS:CORE:5.6.0
 
    * Component: Keil::Device:Startup:2.5.0
-      Source file:   Device/Source/system_MKL25Z4.c
       Include file:  Device/Source/system_MKL25Z4.h
+      Source file:   Device/Source/system_MKL25Z4.c
       Source file:   Device/Source/ARM/startup_MKL25Z4.s
 Build Time Elapsed:  00:00:01
 </pre>
