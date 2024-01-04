@@ -12,7 +12,7 @@
 #include "Recorder.h"
 
 #define CALIBRATE
-//#define DEBUG
+#define DEBUG
 
 static char buff[150];
 
@@ -22,6 +22,8 @@ static int maxX, maxY, maxZ;
 static float amplification;
 static int calibration_counter;
 int direction = 0;	// variable used to determine the direction of pitch and roll (1 -> pos, -1 -> neg)
+// Use detection flag to determine if roll or pitch has been detected
+int detection_flag = 0;
 
 void tx_call(void);
 void print_float(char* str, float tmpVal, int new_line); 
@@ -41,13 +43,16 @@ int main(void)
 	#endif
 	
 	int periodic_task_cnt = 0;
-	int roll_counter = 0;
-	int pitch_counter = 0;
+	int counter = 0;
+	// Initialize roll and pitch flags
 	roll = 0;
+	pitch = 0;
 	
 	config_sys_clock();
 	
+	// Used for debugging 
 	Com_Init(9600);
+	
 	i2c_init();
 	init_mma();
 	
@@ -57,9 +62,7 @@ int main(void)
 	amplification = 1/4096.0f;
 	offsetX = 40000;
 	
-	//RecorderInit(1, 1, 1);
-	
-  timer0_init(240000); // 0.01s
+  timer0_init(240000); // 0.01s 
 	
 	while(1) {
 		// calibrate if enabled
@@ -75,61 +78,114 @@ int main(void)
 			}
 		#endif
 		
-		if(timerEvent) {
-			
+		if(timerEvent) 
+		{
 			timerEvent = 0;
 			periodic_task_cnt++;
 			
 			// Executed once every 100 ms, once calibration is done
-			if(periodic && periodic_task_cnt > 10) {
+			if(periodic && periodic_task_cnt > 10) 
+			{
 				periodic_task();	
 				periodic_task_cnt	= 0;			
 			}
 			
 			// Set by periodic task
-			// If roll detected
-			if(roll)
+			// If roll or pitch is detected
+			if(roll || pitch)
 			{
-				roll_counter++;
+				counter++;
 				switch(roll)
 				{ //switch to determine led freq
 					case 1:
-						if(roll_counter >= 100) //1000 ms
+						if(counter >= 50) //1000 ms period
 							{
 								if(direction==1)
 									toggle_g();
 								else
 									toggle_gb();
 								
-								roll_counter = 0;
+								counter = 0;
 							}
 						break;
 					case 2:
-						if(roll_counter >= 50) //500 ms
+						if(counter >= 25) //500 ms period
 							{
 								if(direction==1)
 									toggle_g();
 								else
 									toggle_gb();
 								
-								roll_counter = 0;
+								counter = 0;
 							}
 						break;
 					case 3:
-						if(roll_counter >= 20) //200 ms
+						if(counter >= 10) //200 ms period
 							{
 								if(direction==1)
 									toggle_g();
 								else
 									toggle_gb();
 								
-								roll_counter = 0;
+								counter = 0;
 							}
 						break;
+					case 4:
+						set_g(0);
+						set_b(0);
+						set_r(0);
+						break;
+				}
+				
+				switch(pitch)
+				{ //switch to determine led freq
+					case 1:
+						if(counter >= 50) //1000 ms period
+							{
+								if(direction==1)
+									toggle_r();
+								else
+									toggle_gb();
+								
+								counter = 0;
+							}
+						break;
+					case 2:
+						if(counter >= 25) //500 ms period
+							{
+								if(direction==1)
+									toggle_r();
+								else
+									toggle_gb();
+								
+								counter = 0;
+							}
+						break;
+					case 3:
+						if(counter >= 10) //200 ms period
+							{
+								if(direction==1)
+									toggle_r();
+								else
+									toggle_gb();
+								
+								counter = 0;
+							}
+						break;
+					case 4:
+						if(counter >= 25)	//500 ms period
+						{
+							set_g(1);
+							set_b(1);
+							set_r(1);
+							counter = 0;
+						}
+						break;	
 				}
 			}
-			else{
-				roll_counter = 0;
+			else
+			{
+				counter = 0;
 				direction = 0;
 				set_g(0);
 				set_b(0);
@@ -145,6 +201,7 @@ int main(void)
 
 void periodic_task(void) 
 {
+	
 	#ifdef DEBUG
 		float val;
 	#endif
@@ -157,6 +214,7 @@ void periodic_task(void)
 		sprintf(buff, "x=%d y=%d z=%d\n\r", acc_X, acc_Y, acc_Z);
 		sprintf(buff, "roll=%d\n", roll); 
 		sprintf(buff, "direction=%d\n", direction);
+		sprintf(buff, "detection flag=%d\n", detection_flag);
 		stdout_putstr(buff, 50);
 		val = acc_X * amplification;
 		print_float("X [G]", val, 0);
@@ -166,8 +224,24 @@ void periodic_task(void)
 		print_float("Z [G]", val, 1);
 	#endif
 	
+	// Reset detection flag in equilibrium state
+	if(acc_X < 410 && acc_Y < 410 && acc_X > -410 && acc_Y > -410)
+		detection_flag = 0;
+	
+	// Flag setting
+	if((acc_X > 410 || acc_X < -410) && (acc_Y < 410 && acc_Y > -410))
+		detection_flag = 1;
+	else{
+		if((acc_Y > 410 || acc_Y < -410) && (acc_X < 410 && acc_X > -410))
+			detection_flag = 2;
+		else {
+			if((acc_Y > 410 || acc_Y < -410) && (acc_X > 410 || acc_X < -410))
+			detection_flag = 3;
+		}
+	}
+	
 	// roll detection
-	if(acc_X)
+	if(detection_flag == 1)
 	{
 		// Equal intervals of 0.3 to determine which stage of roll is present
 		// 0.1 -> 410
@@ -201,6 +275,48 @@ void periodic_task(void)
 	}
 	else
 		roll = 0;
+	
+	// pitch detection
+	if(detection_flag==2)
+	{
+		// Equal intervals of 0.3 to determine which stage of roll is present
+		// 0.1 -> 410
+		// 0.4 -> 1639 + 410
+		// 0.7 -> 2867 + 410
+		// 1 -> 4096
+		if(acc_Y >= 410 && acc_Y <= 2049) 
+		{	
+			pitch = 1; direction = 1;
+		}
+		if(acc_Y <= -410 && acc_Y >= -2049)
+		{
+			pitch = 1; direction = 2;
+		}
+		if(acc_Y >= 2049 && acc_Y <= 3277)
+		{
+			pitch = 2; direction = 1;
+		}
+		if(acc_Y <= -2049 && acc_Y >= -3277)
+		{
+			pitch = 2; direction = 2;
+		}
+		if(acc_Y >= 3277 && acc_Y <= 4096) 
+		{
+			pitch = 3; direction = 1;
+		}	
+		if(acc_Y <= -3277 && acc_Y >= -4096)
+		{
+			pitch = 3; direction = 2;
+		}
+	}
+	else
+		pitch = 0;
+	
+	if(detection_flag == 3)
+	{
+		roll = 4;
+		pitch = 4;
+	}
 }
 
 void __calibrate(void) 
