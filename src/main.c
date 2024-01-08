@@ -14,6 +14,27 @@
 #define CALIBRATE
 #define DEBUG
 
+#define PERIOD_1MS 50
+#define PERIOD_500MS 25
+#define PERIOD_200MS 10
+#define POS_DIR 1
+#define NEG_DIR 2
+
+#define NO_MOVEMENT 0
+#define ROLL_MOVEMENT 1
+#define PITCH_MOVEMENT 2
+#define ROLL_PITCH_MOVEMENT 3
+
+#define SLOW 1
+#define MEDIUM 2
+#define FAST 3
+
+#define EQ_LIMIT 410
+#define SLOW_LIMIT 2049
+#define MEDIUM_LIMIT 3277
+#define FAST_LIMIT 4096
+
+
 static char buff[150];
 
 static int offsetX, offsetY, offsetZ;
@@ -21,7 +42,7 @@ static int minX, minY, minZ;
 static int maxX, maxY, maxZ;
 static float amplification;
 static int calibration_counter;
-int direction = 0;	// variable used to determine the direction of pitch and roll (1 -> pos, -1 -> neg)
+int direction = 0;	// variable used to determine the direction of pitch and roll (1 -> pos, 2 -> neg)
 // Use detection flag to determine if roll or pitch has been detected
 int detection_flag = 0;
 
@@ -97,10 +118,10 @@ int main(void)
 				counter++;
 				switch(roll)
 				{ //switch to determine led freq
-					case 1:
-						if(counter >= 50) //1000 ms period
+					case SLOW:
+						if(counter >= PERIOD_1MS) //1000 ms period
 							{
-								if(direction==1)
+								if(direction==POS_DIR)
 									toggle_g();
 								else
 									toggle_gb();
@@ -108,10 +129,10 @@ int main(void)
 								counter = 0;
 							}
 						break;
-					case 2:
-						if(counter >= 25) //500 ms period
+					case MEDIUM:
+						if(counter >= PERIOD_500MS) //500 ms period
 							{
-								if(direction==1)
+								if(direction==POS_DIR)
 									toggle_g();
 								else
 									toggle_gb();
@@ -119,10 +140,10 @@ int main(void)
 								counter = 0;
 							}
 						break;
-					case 3:
-						if(counter >= 10) //200 ms period
+					case FAST:
+						if(counter >= PERIOD_200MS) //200 ms period
 							{
-								if(direction==1)
+								if(direction==POS_DIR)
 									toggle_g();
 								else
 									toggle_gb();
@@ -139,41 +160,41 @@ int main(void)
 				
 				switch(pitch)
 				{ //switch to determine led freq
-					case 1:
-						if(counter >= 50) //1000 ms period
+					case SLOW:
+						if(counter >= PERIOD_1MS) //1000 ms period
 							{
-								if(direction==1)
+								if(direction==POS_DIR)
 									toggle_r();
 								else
-									toggle_gb();
+									toggle_rb();
 								
 								counter = 0;
 							}
 						break;
-					case 2:
-						if(counter >= 25) //500 ms period
+					case MEDIUM:
+						if(counter >= PERIOD_500MS) //500 ms period
 							{
-								if(direction==1)
+								if(direction==POS_DIR)
 									toggle_r();
 								else
-									toggle_gb();
+									toggle_rb();
 								
 								counter = 0;
 							}
 						break;
-					case 3:
-						if(counter >= 10) //200 ms period
+					case FAST:
+						if(counter >= PERIOD_200MS) //200 ms period
 							{
-								if(direction==1)
+								if(direction==POS_DIR)
 									toggle_r();
 								else
-									toggle_gb();
+									toggle_rb();
 								
 								counter = 0;
 							}
 						break;
 					case 4:
-						if(counter >= 25)	//500 ms period
+						if(counter >= PERIOD_500MS)	//500 ms period
 						{
 							set_g(1);
 							set_b(1);
@@ -225,94 +246,94 @@ void periodic_task(void)
 	#endif
 	
 	// Reset detection flag in equilibrium state
-	if(acc_X < 410 && acc_Y < 410 && acc_X > -410 && acc_Y > -410)
-		detection_flag = 0;
+	if(acc_X < EQ_LIMIT && acc_Y < EQ_LIMIT && acc_X > -EQ_LIMIT && acc_Y > -EQ_LIMIT)
+		detection_flag = NO_MOVEMENT;
 	
 	// Flag setting
-	if((acc_X > 410 || acc_X < -410) && (acc_Y < 410 && acc_Y > -410))
-		detection_flag = 1;
+	if((acc_X > EQ_LIMIT || acc_X < -EQ_LIMIT) && (acc_Y < EQ_LIMIT && acc_Y > -EQ_LIMIT))
+		detection_flag = ROLL_MOVEMENT;
 	else{
-		if((acc_Y > 410 || acc_Y < -410) && (acc_X < 410 && acc_X > -410))
-			detection_flag = 2;
+		if((acc_Y > EQ_LIMIT || acc_Y < -EQ_LIMIT) && (acc_X < EQ_LIMIT && acc_X > -EQ_LIMIT))
+			detection_flag = PITCH_MOVEMENT;
 		else {
-			if((acc_Y > 410 || acc_Y < -410) && (acc_X > 410 || acc_X < -410))
-			detection_flag = 3;
+			if((acc_Y > EQ_LIMIT || acc_Y < -EQ_LIMIT) && (acc_X > EQ_LIMIT || acc_X < -EQ_LIMIT))
+			detection_flag = ROLL_PITCH_MOVEMENT;
 		}
 	}
 	
 	// roll detection
-	if(detection_flag == 1)
+	if(detection_flag == ROLL_MOVEMENT)
 	{
 		// Equal intervals of 0.3 to determine which stage of roll is present
 		// 0.1 -> 410
 		// 0.4 -> 1639 + 410
 		// 0.7 -> 2867 + 410
 		// 1 -> 4096
-		if(acc_X >= 410 && acc_X <= 2049) 
+		if(acc_X >= EQ_LIMIT && acc_X <= SLOW_LIMIT) 
 		{	
-			roll = 1; direction = 1;
+			roll = SLOW; direction = POS_DIR;
 		}
-		if(acc_X <= -410 && acc_X >= -2049)
+		if(acc_X <= -EQ_LIMIT && acc_X >= -SLOW_LIMIT)
 		{
-			roll = 1; direction = 2;
+			roll = SLOW; direction = NEG_DIR;
 		}
-		if(acc_X >= 2049 && acc_X <= 3277)
+		if(acc_X >= SLOW_LIMIT && acc_X <= MEDIUM_LIMIT)
 		{
-			roll = 2; direction = 1;
+			roll = MEDIUM; direction = POS_DIR;
 		}
-		if(acc_X <= -2049 && acc_X >= -3277)
+		if(acc_X <= -SLOW_LIMIT && acc_X >= -MEDIUM_LIMIT)
 		{
-			roll = 2; direction = 2;
+			roll = MEDIUM; direction = NEG_DIR;
 		}
-		if(acc_X >= 3277 && acc_X <= 4096) 
+		if(acc_X >= MEDIUM_LIMIT && acc_X <= FAST_LIMIT) 
 		{
-			roll = 3; direction = 1;
+			roll = FAST; direction = POS_DIR;
 		}	
-		if(acc_X <= -3277 && acc_X >= -4096)
+		if(acc_X <= -MEDIUM_LIMIT && acc_X >= -FAST_LIMIT)
 		{
-			roll = 3; direction = 2;
+			roll = FAST; direction = NEG_DIR;
 		}
 	}
 	else
 		roll = 0;
 	
 	// pitch detection
-	if(detection_flag==2)
+	if(detection_flag==PITCH_MOVEMENT)
 	{
 		// Equal intervals of 0.3 to determine which stage of roll is present
 		// 0.1 -> 410
 		// 0.4 -> 1639 + 410
 		// 0.7 -> 2867 + 410
 		// 1 -> 4096
-		if(acc_Y >= 410 && acc_Y <= 2049) 
+		if(acc_Y >= EQ_LIMIT && acc_Y <= SLOW_LIMIT) 
 		{	
-			pitch = 1; direction = 1;
+			pitch = SLOW; direction = POS_DIR;
 		}
-		if(acc_Y <= -410 && acc_Y >= -2049)
+		if(acc_Y <= -EQ_LIMIT && acc_Y >= -SLOW_LIMIT)
 		{
-			pitch = 1; direction = 2;
+			pitch = SLOW; direction = NEG_DIR;
 		}
-		if(acc_Y >= 2049 && acc_Y <= 3277)
+		if(acc_Y >= SLOW_LIMIT && acc_Y <= MEDIUM_LIMIT)
 		{
-			pitch = 2; direction = 1;
+			pitch = MEDIUM; direction = POS_DIR;
 		}
-		if(acc_Y <= -2049 && acc_Y >= -3277)
+		if(acc_Y <= -SLOW_LIMIT && acc_Y >= -MEDIUM_LIMIT)
 		{
-			pitch = 2; direction = 2;
+			pitch = MEDIUM; direction = NEG_DIR;
 		}
-		if(acc_Y >= 3277 && acc_Y <= 4096) 
+		if(acc_Y >= MEDIUM_LIMIT && acc_Y <= FAST_LIMIT) 
 		{
-			pitch = 3; direction = 1;
+			pitch = FAST; direction = POS_DIR;
 		}	
-		if(acc_Y <= -3277 && acc_Y >= -4096)
+		if(acc_Y <= -MEDIUM_LIMIT && acc_Y >= -FAST_LIMIT)
 		{
-			pitch = 3; direction = 2;
+			pitch = FAST; direction = NEG_DIR;
 		}
 	}
 	else
 		pitch = 0;
 	
-	if(detection_flag == 3)
+	if(detection_flag == ROLL_PITCH_MOVEMENT)
 	{
 		roll = 4;
 		pitch = 4;

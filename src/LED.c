@@ -48,6 +48,11 @@ void toggle_gb(void){
 	PTB->PTOR = (1 << GREEN_LED);
 }
 
+void toggle_rb(void){
+	PTB->PTOR = (1 << RED_LED);
+	PTD->PTOR = (1 << BLUE_LED);
+}
+
 void set_r(char on_off) {
 	if(on_off) {
 		//Zero on pin turns on the led

@@ -14,6 +14,7 @@ void toggle_r(void);
 void toggle_g(void);
 void toggle_b(void);
 void toggle_gb(void);
+void toggle_rb(void);
 void set_r(char on_off);
 void set_g(char on_off);
 void set_b(char on_off);
